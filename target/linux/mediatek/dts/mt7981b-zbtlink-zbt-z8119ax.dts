@@ -134,11 +134,12 @@
 	};
 };
 
+/* 修正点：重命名标签为 factory_phy_cal 以避免冲突 */
 &factory {
 	compatible = "nvmem-cells";
 	#address-cells = <1>;
 	#size-cells = <1>;
-	phy_calibration: cal@400 {
+	factory_phy_cal: cal@400 {
 		reg = <0x400 0x100>;
 	};
 };
@@ -173,14 +174,14 @@
 			compatible = "ethernet-phy-id03a2.9461";
 			reg = <0>;
 			phy-mode = "gmii";
-			nvmem-cells = <&phy_calibration>;
+			/* 修正点：引用新的标签名 */
+			nvmem-cells = <&factory_phy_cal>;
 			nvmem-cell-names = "phy-cal-data";
 		};
 
 		switch@1f {
 			compatible = "mediatek,mt7531";
 			reg = <31>;
-			/* 严格还原厂家写法，使用 0 (GPIO_ACTIVE_HIGH) */
 			reset-gpios = <&pio 39 0>;
 
 			ports {

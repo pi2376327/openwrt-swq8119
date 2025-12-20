@@ -84,6 +84,24 @@
 	status = "okay";
 };
 
+/* 新增：WiFi 核心控制器，必须引用 Factory 分区数据 */
+&wmac {
+	status = "okay";
+	mediatek,mtd-eeprom = <&factory 0x0000>;
+};
+
+/* 新增：PCIe 控制器，MT7976 芯片通过此通道连接 */
+&pcie {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie_pins>;
+	status = "okay";
+};
+
+/* 新增：PCIe 物理层定义 */
+&pcie_phy {
+	status = "okay";
+};
+
 &spi0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0_flash_pins>;
@@ -114,6 +132,7 @@
 				reg = <0x0100000 0x0080000>;
 			};
 
+			/* 必须保留标签名 factory，以便被 wmac 引用 */
 			factory: partition@180000 {
 				label = "Factory";
 				reg = <0x180000 0x0200000>;
@@ -126,6 +145,7 @@
 				read-only;
 			};
 
+			/* 这里的 0x7000000 (112MB) 是为了修复重启问题，务必保留 */
 			partition@580000 {
 				label = "ubi";
 				reg = <0x580000 0x7000000>;
@@ -134,7 +154,7 @@
 	};
 };
 
-/* 修正点：重命名标签为 factory_phy_cal 以避免冲突 */
+/* 用于以太网 PHY 校准的引用 */
 &factory {
 	compatible = "nvmem-cells";
 	#address-cells = <1>;
@@ -174,7 +194,6 @@
 			compatible = "ethernet-phy-id03a2.9461";
 			reg = <0>;
 			phy-mode = "gmii";
-			/* 修正点：引用新的标签名 */
 			nvmem-cells = <&factory_phy_cal>;
 			nvmem-cell-names = "phy-cal-data";
 		};
@@ -247,6 +266,14 @@
 			pins = "SPI0_CLK", "SPI0_MOSI", "SPI0_MISO";
 			drive-strength = <MTK_DRIVE_8mA>;
 			bias-pull-down = <MTK_PUPD_SET_R1R0_11>;
+		};
+	};
+
+	/* 新增：PCIe 引脚定义，缺了这个 PCIe 总线无法工作 */
+	pcie_pins: pcie-pins {
+		mux {
+			function = "pcie";
+			groups = "pcie_clk", "pcie_wake", "pcie_reset";
 		};
 	};
 };

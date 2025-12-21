@@ -26,7 +26,7 @@
 	};
 
 	memory {
-		/* 原厂定义内存: 256MB */
+		/* 原厂 256MB 内存配置 */
 		reg = <0 0x40000000 0 0x20000000>;
 	};
 
@@ -65,7 +65,7 @@
 		};
 	};
 
-	/* GPIO Export 保持用于控制外设电源 */
+	/* GPIO Export 用于控制外部模块电源 */
 	gpio-export {
 		compatible = "gpio-export";
 		#size-cells = <0>;
@@ -104,16 +104,22 @@
 	};
 };
 
+/* 核心改动：引用系统内置的 PHY 节点，挂载我们自定义的校准数据 */
+&int_gbe_phy {
+	nvmem-cells = <&factory_phy_cal>;
+	nvmem-cell-names = "phy-cal-data";
+};
+
 &eth {
 	status = "okay";
 
 	gmac0: mac@0 {
-		/* LAN 口 (2.5G) */
+		/* LAN (2.5G) */
 		compatible = "mediatek,eth-mac";
 		reg = <0>;
 		phy-mode = "2500base-x";
 
-		/* 使用基准 MAC + 2 (对应 e7:f0) */
+		/* 引用 mac-base，使用偏移量 2 (对应 f8...f0) */
 		nvmem-cell-names = "mac-address";
 		nvmem-cells = <&macaddr_factory_4 2>;
 
@@ -125,23 +131,17 @@
 	};
 
 	gmac1: mac@1 {
-		/* WAN 口 (1G) */
+		/* WAN (1G) */
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
 		phy-mode = "gmii";
-		/* 关键修正：指向内部 PHY 节点 */
+		/* 引用上面定义的内置 PHY */
 		phy-handle = <&int_gbe_phy>;
 
-		/* 使用基准 MAC + 3 (对应 e7:f1) */
+		/* 引用 mac-base，使用偏移量 3 (对应 f8...f1) */
 		nvmem-cell-names = "mac-address";
 		nvmem-cells = <&macaddr_factory_4 3>;
 	};
-};
-
-/* 引用 mt7981.dtsi 中已定义的内部 PHY 节点并添加校准数据 */
-&int_gbe_phy {
-	nvmem-cells = <&phy_calibration>;
-	nvmem-cell-names = "phy-cal-data";
 };
 
 &mdio_bus {
@@ -245,15 +245,15 @@
 						reg = <0x0 0x1000>;
 					};
 
-					/* 基准 MAC 地址定义 (0x04) */
+					/* 核心：MAC 地址基准 */
 					macaddr_factory_4: macaddr@4 {
 						compatible = "mac-base";
 						reg = <0x4 0x6>;
 						#nvmem-cell-cells = <1>;
 					};
 
-					/* PHY 校准数据 */
-					phy_calibration: cal@400 {
+					/* 核心改动：重命名以避免冲突 */
+					factory_phy_cal: cal@400 {
 						reg = <0x400 0x100>;
 					};
 				};
@@ -265,7 +265,6 @@
 				read-only;
 			};
 
-			/* UBI 维持 112MB */
 			partition@580000 {
 				label = "ubi";
 				reg = <0x580000 0x7000000>;
@@ -315,7 +314,6 @@
 		};
 	};
 
-	/* PCIE 引脚必须配置 */
 	pcie_pins: pcie-pins {
 		mux {
 			function = "pcie";
@@ -324,7 +322,6 @@
 	};
 };
 
-/* 开启 PCIe */
 &pcie {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie_pins>;

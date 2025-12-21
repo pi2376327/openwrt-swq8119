@@ -12,7 +12,8 @@
 	};
 
 	memory {
-		reg = <0 0x40000000 0 0x20000000>;
+		/* 原厂定义的 256MB 内存 */
+		reg = <0 0x40000000 0 0x10000000>;
 	};
 
 	gpio-keys {
@@ -84,21 +85,18 @@
 	status = "okay";
 };
 
-/* 新增：WiFi 核心控制器，必须引用 Factory 分区数据 */
-&wmac {
+/* --- WiFi 核心配置 --- */
+&wifi {
 	status = "okay";
-	mediatek,mtd-eeprom = <&factory 0x0000>;
+	/* 引用 Factory 分区的校准数据和 MAC 地址 */
+	nvmem-cells = <&eeprom_factory_0>, <&macaddr_factory_4>;
+	nvmem-cell-names = "eeprom", "mac-address";
 };
 
-/* 新增：PCIe 控制器，MT7976 芯片通过此通道连接 */
+/* --- PCIe 配置 (MT7976 芯片通道) --- */
 &pcie {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie_pins>;
-	status = "okay";
-};
-
-/* 新增：PCIe 物理层定义 */
-&pcie_phy {
 	status = "okay";
 };
 
@@ -132,11 +130,39 @@
 				reg = <0x0100000 0x0080000>;
 			};
 
-			/* 必须保留标签名 factory，以便被 wmac 引用 */
+			/* --- Factory 分区及 NVMEM 映射 --- */
 			factory: partition@180000 {
 				label = "Factory";
 				reg = <0x180000 0x0200000>;
 				read-only;
+				compatible = "nvmem-cells";
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				/* 0x0000: WiFi 校准数据 (4KB) */
+				eeprom_factory_0: eeprom@0 {
+					reg = <0x0 0x1000>;
+				};
+
+				/* 0x0004: WiFi MAC (f8:5e:3c:46:e7:ee) */
+				macaddr_factory_4: macaddr@4 {
+					reg = <0x4 0x6>;
+				};
+
+				/* 0x0024: LAN MAC (f8:5e:3c:46:e7:f1) */
+				macaddr_factory_24: macaddr@24 {
+					reg = <0x24 0x6>;
+				};
+
+				/* 0x002a: WAN MAC (f8:5e:3c:46:e7:f0) */
+				macaddr_factory_2a: macaddr@2a {
+					reg = <0x2a 0x6>;
+				};
+
+				/* 0x0400: Switch/PHY 校准数据 */
+				phy_calibration: cal@400 {
+					reg = <0x400 0x100>;
+				};
 			};
 
 			partition@380000 {
@@ -145,7 +171,7 @@
 				read-only;
 			};
 
-			/* 这里的 0x7000000 (112MB) 是为了修复重启问题，务必保留 */
+			/* 限制为 112MB 以解决重启问题 */
 			partition@580000 {
 				label = "ubi";
 				reg = <0x580000 0x7000000>;
@@ -154,23 +180,22 @@
 	};
 };
 
-/* 用于以太网 PHY 校准的引用 */
-&factory {
-	compatible = "nvmem-cells";
-	#address-cells = <1>;
-	#size-cells = <1>;
-	factory_phy_cal: cal@400 {
-		reg = <0x400 0x100>;
-	};
+/* PHY 校准引用 */
+&phy0 {
+	nvmem-cells = <&phy_calibration>;
+	nvmem-cell-names = "phy-cal-data";
 };
 
 &eth {
 	status = "okay";
 
+	/* WAN口 (2.5G) - 绑定 macaddr@2a (...e7:f0) */
 	gmac0: mac@0 {
 		compatible = "mediatek,eth-mac";
 		reg = <0>;
 		phy-mode = "2500base-x";
+		nvmem-cells = <&macaddr_factory_2a>;
+		nvmem-cell-names = "mac-address";
 
 		fixed-link {
 			speed = <2500>;
@@ -179,11 +204,14 @@
 		};
 	};
 
+	/* LAN口 - 绑定 macaddr@24 (...e7:f1) */
 	gmac1: mac@1 {
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
 		phy-mode = "gmii";
 		phy-handle = <&phy0>;
+		nvmem-cells = <&macaddr_factory_24>;
+		nvmem-cell-names = "mac-address";
 	};
 
 	mdio: mdio-bus {
@@ -194,7 +222,7 @@
 			compatible = "ethernet-phy-id03a2.9461";
 			reg = <0>;
 			phy-mode = "gmii";
-			nvmem-cells = <&factory_phy_cal>;
+			nvmem-cells = <&phy_calibration>;
 			nvmem-cell-names = "phy-cal-data";
 		};
 
@@ -269,7 +297,7 @@
 		};
 	};
 
-	/* 新增：PCIe 引脚定义，缺了这个 PCIe 总线无法工作 */
+	/* PCIe 引脚定义 - 必不可少 */
 	pcie_pins: pcie-pins {
 		mux {
 			function = "pcie";

@@ -40,25 +40,9 @@
 
 	leds {
 		compatible = "gpio-leds";
-		led_4g: 4g {
-			label = "green:4g";
-			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_WAN;
-		};
-		led_4g2: 4g2 {
-			label = "green:4g2";
-			gpios = <&pio 13 GPIO_ACTIVE_LOW>;
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_WAN;
-			function-enumerator = <1>;
-		};
-		led_net: net {
-			label = "green:net";
-			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_STATUS;
-		};
+		led_4g: 4g { label = "green:4g"; gpios = <&pio 8 GPIO_ACTIVE_LOW>; };
+		led_4g2: 4g2 { label = "green:4g2"; gpios = <&pio 13 GPIO_ACTIVE_LOW>; };
+		led_net: net { label = "green:net"; gpios = <&pio 11 GPIO_ACTIVE_LOW>; };
 	};
 
 	gpio-export {
@@ -66,7 +50,6 @@
 		#size-cells = <0>;
 		usb3 { gpio-export,name = "usb3"; gpio-export,output = <1>; gpios = <&pio 3 GPIO_ACTIVE_HIGH>; };
 		4g { gpio-export,name = "4g"; gpio-export,output = <1>; gpios = <&pio 4 GPIO_ACTIVE_HIGH>; };
-		4g2 { gpio-export,name = "4g2"; gpio-export,output = <1>; gpios = <&pio 5 GPIO_ACTIVE_HIGH>; };
 		sim { gpio-export,name = "sim"; gpio-export,output = <1>; gpios = <&pio 6 GPIO_ACTIVE_HIGH>; };
 		sim2 { gpio-export,name = "sim2"; gpio-export,output = <1>; gpios = <&pio 7 GPIO_ACTIVE_HIGH>; };
 		wdg { gpio-export,name = "wdg"; gpio-export,output = <1>; gpios = <&pio 2 GPIO_ACTIVE_HIGH>; };
@@ -103,10 +86,6 @@
 		compatible = "mediatek,mt7531";
 		reg = <0x1f>;
 		reset-gpios = <&pio 39 GPIO_ACTIVE_HIGH>;
-		interrupt-controller;
-		#interrupt-cells = <1>;
-		interrupt-parent = <&pio>;
-		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
 	};
 };
 
@@ -142,16 +121,14 @@
 		spi-tx-bus-width = <4>;
 		spi-rx-bus-width = <4>;
 
-		/* 启用内核 NMBM 支持 */
+		/* 厂家触发 NMBM 的属性 */
 		mediatek,nmbm;
 		mediatek,bmt-max-ratio = <1>;
 		mediatek,bmt-max-reserved-blocks = <64>;
 
-		/* 重要修正：将 partitions 移入 nmbm 专用容器 
-		   这样 fixed-partitions 解析器就不会过早地在 spi0.0 上创建分区
-		*/
+		/* 修正：使用厂家完全一致的 compatible 字符串 */
 		nmbm {
-			compatible = "mediatek,nmbm-mtd";
+			compatible = "generic,nmbm";
 			#address-cells = <1>;
 			#size-cells = <1>;
 
@@ -176,7 +153,7 @@
 					};
 				};
 				partition@380000 { label = "FIP"; reg = <0x380000 0x0200000>; read-only; };
-				partition@580000 { label = "ubi"; reg = <0x580000 0x6A00000>; };
+				partition@580000 { label = "ubi"; reg = <0x580000 0x7280000>; };
 			};
 		};
 	};
@@ -194,9 +171,4 @@
 		conf-pu { pins = "SPI0_CS", "SPI0_HOLD", "SPI0_WP"; drive-strength = <MTK_DRIVE_8mA>; bias-pull-up = <MTK_PUPD_SET_R1R0_11>; };
 		conf-pd { pins = "SPI0_CLK", "SPI0_MOSI", "SPI0_MISO"; drive-strength = <MTK_DRIVE_8mA>; bias-pull-down = <MTK_PUPD_SET_R1R0_11>; };
 	};
-	pcie_pins: pcie-pins {
-		mux { function = "pcie"; groups = "pcie_clk", "pcie_wake", "pcie_reset"; };
-	};
 };
-
-&pcie { pinctrl-names = "default"; pinctrl-0 = <&pcie_pins>; status = "okay"; };

@@ -22,7 +22,7 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
-		bootargs = "console=ttyS0,115200n1 loglevel=8 earlycon=uart8250,mmio32,0x11002000";
+		bootargs = "console=ttyS0,115200n1 loglevel=8 earlycon=uart8250,mmio32,0x11002000 ipv6.disable=1";
 	};
 
 	memory {
@@ -58,6 +58,13 @@
 			label = "green:net";
 			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
 		};
+	};
+
+	watchdog {
+		compatible = "linux,wdt-gpio";
+		gpios = <&pio 2 GPIO_ACTIVE_HIGH>;
+		hw_algo = "toggle";
+		hw_margin_ms = <1000>;
 	};
 
 	gpio-export {

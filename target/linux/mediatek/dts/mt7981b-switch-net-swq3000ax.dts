@@ -3,7 +3,7 @@
 #include "mt7981.dtsi"
 
 / {
-	model = "Switch-Net SWQ3000AX";
+	model = "SWQ3000AX";
 	compatible = "switch-net,swq3000ax", "mediatek,mt7981";
 
 	aliases {

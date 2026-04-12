@@ -35,7 +35,7 @@ mediatek_setup_interfaces()
     	ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "eth1"
     	;;
     switch-net,swq3000ax)
-        ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "eth1"
+        ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
         ;;
 	asus,tuf-ax6000)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 lan5" eth1
